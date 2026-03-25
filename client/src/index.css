@@ -1,0 +1,124 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-dark: #0f0c1a;
+    --bg-card: #1a1625;
+    --bg-card2: #221d30;
+    --border: rgba(168, 85, 247, 0.15);
+    --text-muted: rgba(255, 255, 255, 0.5);
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    background-color: var(--bg-dark);
+    color: white;
+    font-family: "Inter", sans-serif;
+    min-height: 100dvh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  #root {
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border p-4;
+    background: var(--bg-card);
+    border-color: var(--border);
+  }
+
+  .btn-primary {
+    @apply rounded-xl px-4 py-2 font-semibold transition-all duration-200 active:scale-95;
+    background: linear-gradient(135deg, #7c3aed, #a855f7);
+    color: white;
+  }
+
+  .btn-primary:hover {
+    background: linear-gradient(135deg, #6d28d9, #9333ea);
+    box-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
+  }
+
+  .btn-secondary {
+    @apply rounded-xl px-4 py-2 font-semibold transition-all duration-200 active:scale-95;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: white;
+  }
+
+  .input {
+    @apply w-full rounded-xl px-4 py-3 text-white outline-none transition-all duration-200;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .input:focus {
+    border-color: rgba(168, 85, 247, 0.5);
+    box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.12);
+  }
+
+  .input::placeholder {
+    color: var(--text-muted);
+  }
+
+  .nav-tab {
+    @apply flex flex-col items-center gap-0.5 px-3 py-2 text-xs transition-all duration-200 rounded-xl;
+    color: var(--text-muted);
+  }
+
+  .nav-tab.active {
+    color: #a855f7;
+    background: rgba(168, 85, 247, 0.12);
+  }
+
+  .badge {
+    @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold;
+  }
+
+  .badge-easy   { @apply badge bg-emerald-900/50 text-emerald-300; }
+  .badge-medium { @apply badge bg-amber-900/50   text-amber-300;   }
+  .badge-hard   { @apply badge bg-red-900/50     text-red-300;     }
+}
+
+/* Star animation for hero banner */
+@keyframes starOrbit {
+  0%   { transform: rotate(0deg)   scale(1);    opacity: 1;    }
+  50%  { transform: rotate(180deg) scale(1.35); opacity: 0.65; }
+  100% { transform: rotate(360deg) scale(1);    opacity: 1;    }
+}
+
+.star-a { animation: starOrbit 2.6s linear infinite;           display: inline-block; }
+.star-b { animation: starOrbit 3.4s linear infinite reverse;   display: inline-block; }
+.star-c { animation: starOrbit 2.1s linear infinite 0.6s;      display: inline-block; }
+.star-d { animation: starOrbit 4.0s linear infinite 1.2s reverse; display: inline-block; }
+
+@keyframes heroBannerShimmer {
+  0%   { background-position: 0%   center; }
+  100% { background-position: 200% center; }
+}
+
+.hero-banner-bg {
+  background: linear-gradient(
+    135deg,
+    #78350f, #b45309, #d97706, #fde68a,
+    #fbbf24, #fde68a, #d97706, #b45309, #78350f
+  );
+  background-size: 300% 100%;
+  animation: heroBannerShimmer 4s linear infinite;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar        { width: 6px; }
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  { background: rgba(168, 85, 247, 0.3); border-radius: 3px; }
