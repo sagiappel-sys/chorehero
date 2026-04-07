@@ -14,16 +14,24 @@ connectDB();
 const app = express();
 const server = http.createServer(app);
 
+// Allowed origins — add any domain that should talk to this API
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  "http://localhost:5173",
+  "https://leanovationtech.com",
+  "https://www.leanovationtech.com",
+].filter(Boolean);
+
 // Socket.io for real-time updates
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    origin: allowedOrigins,
     methods: ["GET", "POST"],
   },
 });
 
 // Middleware
-app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:5173" }));
+app.use(cors({ origin: allowedOrigins }));
 app.use(express.json());
 
 // Attach io to every request so controllers can emit events
