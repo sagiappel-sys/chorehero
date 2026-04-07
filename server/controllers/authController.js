@@ -6,55 +6,90 @@ const Notification = require("../models/Notification");
 const generateToken = (id) =>
   jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRE || "7d" });
 
+const userPayload = (user, token) => ({
+  _id: user._id,
+  name: user.name,
+  email: user.email,
+  emoji: user.emoji,
+  householdId: user.householdId,
+  isAdmin: user.isAdmin,
+  totalScore: user.totalScore,
+  weeklyScore: user.weeklyScore,
+  token,
+});
+
 // POST /api/auth/register
 const register = async (req, res) => {
   try {
     const { name, email, password, emoji } = req.body;
+    const emailToUse = email?.trim() || null;
 
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: "Email already in use" });
+    if (emailToUse) {
+      const existing = await User.findOne({ email: emailToUse });
+      if (existing) {
+        return res.status(400).json({ message: "Email already in use" });
+      }
     }
 
-    const user = await User.create({ name, email, password, emoji: emoji || "😊" });
-
-    res.status(201).json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      emoji: user.emoji,
-      householdId: user.householdId,
-      isAdmin: user.isAdmin,
-      totalScore: user.totalScore,
-      weeklyScore: user.weeklyScore,
-      token: generateToken(user._id),
+    const user = await User.create({
+      name,
+      email: emailToUse,
+      password,
+      emoji: emoji || "😊",
     });
+
+    res.status(201).json(userPayload(user, generateToken(user._id)));
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// POST /api/auth/login
+// POST /api/auth/login  (email + password)
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const user = await User.findOne({ email }).select("+password");
+    if (!email?.trim()) {
+      return res.status(400).json({ message: "Email is required. No email? Sign in via your household invite link." });
+    }
+
+    const user = await User.findOne({ email: email.trim().toLowerCase() }).select("+password");
     if (!user || !(await user.matchPassword(password))) {
       return res.status(401).json({ message: "Invalid email or password" });
     }
 
-    res.json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      emoji: user.emoji,
-      householdId: user.householdId,
-      isAdmin: user.isAdmin,
-      totalScore: user.totalScore,
-      weeklyScore: user.weeklyScore,
-      token: generateToken(user._id),
-    });
+    res.json(userPayload(user, generateToken(user._id)));
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// POST /api/auth/login-with-name  (name + inviteCode + password — for kids without email)
+const loginWithName = async (req, res) => {
+  try {
+    const { name, inviteCode, password } = req.body;
+
+    if (!name || !inviteCode || !password) {
+      return res.status(400).json({ message: "Name, invite code, and password are required" });
+    }
+
+    const household = await Household.findOne({ inviteCode: inviteCode.toUpperCase() });
+    if (!household) {
+      return res.status(404).json({ message: "Household not found" });
+    }
+
+    // Escape regex special chars in name
+    const escaped = name.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const user = await User.findOne({
+      _id: { $in: household.members },
+      name: { $regex: new RegExp(`^${escaped}$`, "i") },
+    }).select("+password");
+
+    if (!user || !(await user.matchPassword(password))) {
+      return res.status(401).json({ message: "Invalid name or password" });
+    }
+
+    res.json(userPayload(user, generateToken(user._id)));
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -78,7 +113,7 @@ const createHousehold = async (req, res) => {
 
     const household = await Household.create({
       name: householdName,
-      adminId: userId,
+      adminIds: [userId],
       members: [userId],
     });
 
@@ -105,7 +140,7 @@ const joinHousehold = async (req, res) => {
       return res.status(404).json({ message: "Invalid invite code" });
     }
 
-    if (household.members.includes(userId)) {
+    if (household.members.map(String).includes(String(userId))) {
       return res.status(400).json({ message: "You are already in this household" });
     }
 
@@ -114,7 +149,6 @@ const joinHousehold = async (req, res) => {
 
     await User.findByIdAndUpdate(userId, { householdId: household._id, isAdmin: false });
 
-    // Create a join notification
     await Notification.create({
       householdId: household._id,
       userId,
@@ -123,10 +157,18 @@ const joinHousehold = async (req, res) => {
       type: "member_joined",
     });
 
+    if (req.io) {
+      req.io.to(String(household._id)).emit("notification:new", {
+        message: `${req.user.name} joined the household! 🎉`,
+        emoji: req.user.emoji || "😊",
+        type: "member_joined",
+      });
+    }
+
     res.json(household);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-module.exports = { register, login, getMe, createHousehold, joinHousehold };
+module.exports = { register, login, loginWithName, getMe, createHousehold, joinHousehold };

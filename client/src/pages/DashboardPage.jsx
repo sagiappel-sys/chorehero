@@ -1,11 +1,15 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useApp } from "../context/AppContext";
+import { householdsAPI } from "../services/api";
+import toast from "react-hot-toast";
 
 export default function DashboardPage() {
   const { user, logout } = useAuth();
-  const { chores, members, notifications, household, completeChore } = useApp();
+  const { chores, members, notifications, household, completeChore, fetchAll } = useApp();
   const [showActivity, setShowActivity] = useState(false);
+  const [showMembers, setShowMembers] = useState(false);
+  const [adminLoading, setAdminLoading] = useState(null); // userId being updated
 
   // Stats
   const myChores = chores.filter((c) => !c.isCompleted && c.assignedTo?._id === user?._id);
@@ -24,6 +28,53 @@ export default function DashboardPage() {
   const recentActivity = notifications.slice(0, 15);
   const unreadActivity = notifications.filter((n) => !n.readBy?.includes(user?._id)).length;
 
+  const adminCount = members.filter((m) => m.isAdmin).length;
+
+  // Invite link
+  const inviteLink = household
+    ? `${window.location.origin}/invite/${household.inviteCode}`
+    : null;
+
+  const handleCopyInvite = async () => {
+    if (!inviteLink) return;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: `Join ${household.name} on ChoreHero`, url: inviteLink });
+      } else {
+        await navigator.clipboard.writeText(inviteLink);
+        toast.success("Invite link copied! 🔗");
+      }
+    } catch {
+      toast.error("Could not copy link");
+    }
+  };
+
+  const handleAdminToggle = async (member) => {
+    const action = member.isAdmin ? "demote" : "promote";
+
+    if (action === "promote" && adminCount >= 3) {
+      return toast.error("Maximum 3 admins allowed");
+    }
+    if (action === "demote" && member._id === user?._id && adminCount === 1) {
+      return toast.error("You're the last admin — can't remove yourself");
+    }
+
+    setAdminLoading(member._id);
+    try {
+      await householdsAPI.updateAdmin(member._id, action);
+      await fetchAll();
+      toast.success(
+        action === "promote"
+          ? `${member.name} is now a co-admin 👑`
+          : `${member.name} removed from admins`
+      );
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to update admin");
+    } finally {
+      setAdminLoading(null);
+    }
+  };
+
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -34,9 +85,19 @@ export default function DashboardPage() {
             {user?.emoji} {user?.name}
           </h1>
         </div>
-        <button onClick={logout} className="text-white/30 text-sm hover:text-white/60 transition-colors">
-          Sign out
-        </button>
+        <div className="flex items-center gap-2">
+          {inviteLink && (
+            <button
+              onClick={handleCopyInvite}
+              className="text-xs bg-purple-600/30 hover:bg-purple-600/50 text-purple-300 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
+            >
+              🔗 Invite
+            </button>
+          )}
+          <button onClick={logout} className="text-white/30 text-sm hover:text-white/60 transition-colors">
+            Sign out
+          </button>
+        </div>
       </div>
 
       {/* Hero Banner */}
@@ -106,6 +167,79 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
+      {/* Members section */}
+      <div>
+        <button
+          className="w-full flex items-center justify-between mb-2 text-left"
+          onClick={() => setShowMembers((v) => !v)}
+        >
+          <span className="font-semibold text-white/70 text-sm flex items-center gap-2">
+            👥 Members
+            <span className="text-white/30 font-normal">({members.length})</span>
+            {user?.isAdmin && (
+              <span className="text-[10px] bg-purple-600/30 text-purple-300 px-1.5 py-0.5 rounded-md">
+                {adminCount}/3 admins
+              </span>
+            )}
+          </span>
+          <span
+            className="text-white/40 text-sm transition-transform duration-300"
+            style={{ display: "inline-block", transform: showMembers ? "rotate(180deg)" : "rotate(0deg)" }}
+          >
+            ▼
+          </span>
+        </button>
+
+        {showMembers && (
+          <div className="space-y-2">
+            {members.map((m) => (
+              <div key={m._id} className="card flex items-center justify-between gap-3 py-2.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">{m.emoji}</span>
+                  <div>
+                    <div className="font-medium text-sm flex items-center gap-1.5">
+                      {m.name}
+                      {m.isAdmin && (
+                        <span className="text-[10px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded-md">
+                          👑 Admin
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-white/30">{m.weeklyScore} pts this week</div>
+                  </div>
+                </div>
+                {/* Admin can promote/demote others (not themselves if last admin) */}
+                {user?.isAdmin && m._id !== user?._id && (
+                  <button
+                    onClick={() => handleAdminToggle(m)}
+                    disabled={
+                      adminLoading === m._id ||
+                      (!m.isAdmin && adminCount >= 3)
+                    }
+                    className={`text-xs px-2.5 py-1 rounded-lg transition-colors disabled:opacity-40 ${
+                      m.isAdmin
+                        ? "bg-red-500/20 text-red-300 hover:bg-red-500/30"
+                        : "bg-purple-600/30 text-purple-300 hover:bg-purple-600/50"
+                    }`}
+                  >
+                    {adminLoading === m._id
+                      ? "…"
+                      : m.isAdmin
+                      ? "Remove admin"
+                      : "Make admin"}
+                  </button>
+                )}
+              </div>
+            ))}
+            {user?.isAdmin && (
+              <p className="text-xs text-white/20 text-center pt-1">
+                Max 3 admins per household
+              </p>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Recent Activity collapsible */}
       <div>

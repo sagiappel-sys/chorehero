@@ -74,6 +74,9 @@ export default function LoginPage() {
             Create one
           </Link>
         </p>
+        <p className="text-center mt-3 text-xs text-white/30">
+          No email? Ask your household admin for the invite link to sign in.
+        </p>
       </div>
     </div>
   );

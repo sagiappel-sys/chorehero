@@ -67,14 +67,15 @@ export default function RegisterPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1.5 text-white/70">Email</label>
+            <label className="block text-sm font-medium mb-1.5 text-white/70">
+              Email <span className="text-white/30 font-normal">(optional — not needed for kids)</span>
+            </label>
             <input
               type="email"
               className="input"
               placeholder="you@example.com"
               value={form.email}
               onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
-              required
             />
           </div>
           <div>

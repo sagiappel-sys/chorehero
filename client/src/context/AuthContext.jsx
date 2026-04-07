@@ -33,6 +33,14 @@ export const AuthProvider = ({ children }) => {
     return data;
   }, []);
 
+  const loginWithName = useCallback(async (name, inviteCode, password) => {
+    const { data } = await authAPI.loginWithName({ name, inviteCode, password });
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("user", JSON.stringify(data));
+    setUser(data);
+    return data;
+  }, []);
+
   const register = useCallback(async (formData) => {
     const { data } = await authAPI.register(formData);
     localStorage.setItem("token", data.token);
@@ -56,7 +64,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, updateUser }}>
+    <AuthContext.Provider value={{ user, loading, login, loginWithName, register, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

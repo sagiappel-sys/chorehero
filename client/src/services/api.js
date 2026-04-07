@@ -31,6 +31,7 @@ export default api;
 export const authAPI = {
   register: (data)               => api.post("/auth/register", data),
   login: (data)                  => api.post("/auth/login", data),
+  loginWithName: (data)          => api.post("/auth/login-with-name", data),
   getMe: ()                      => api.get("/auth/me"),
   createHousehold: (data)        => api.post("/auth/household/create", data),
   joinHousehold: (data)          => api.post("/auth/household/join", data),
@@ -47,12 +48,14 @@ export const choresAPI = {
 
 // ── Households ───────────────────────────────────────────────
 export const householdsAPI = {
-  getMyHousehold: () => api.get("/households/me"),
-  getLeaderboard: () => api.get("/households/leaderboard"),
+  getMyHousehold:  ()             => api.get("/households/me"),
+  getLeaderboard:  ()             => api.get("/households/leaderboard"),
+  getByInvite:     (code)         => api.get(`/households/by-invite/${code}`),
+  updateAdmin:     (userId, action) => api.put(`/households/admins/${userId}`, { action }),
 };
 
 // ── Notifications ────────────────────────────────────────────
 export const notificationsAPI = {
-  getAll:     () => api.get("/notifications"),
+  getAll:      () => api.get("/notifications"),
   markAllRead: () => api.put("/notifications/read"),
 };

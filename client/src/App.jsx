@@ -5,6 +5,7 @@ import { AppProvider } from "./context/AppContext";
 import LoginPage       from "./pages/LoginPage";
 import RegisterPage    from "./pages/RegisterPage";
 import HouseholdSetup  from "./pages/HouseholdSetup";
+import InvitePage      from "./pages/InvitePage";
 import DashboardPage   from "./pages/DashboardPage";
 import ChoresPage      from "./pages/ChoresPage";
 import LeaderboardPage from "./pages/LeaderboardPage";
@@ -28,6 +29,7 @@ const AppRoutes = () => (
   <Routes>
     <Route path="/login"    element={<LoginPage />} />
     <Route path="/register" element={<RegisterPage />} />
+    <Route path="/invite/:code" element={<InvitePage />} />
 
     <Route path="/setup" element={
       <RequireAuth><HouseholdSetup /></RequireAuth>
