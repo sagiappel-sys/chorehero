@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const { v4: uuidv4 } = require("uuid");
+const { randomUUID } = require("crypto");
 
 const householdSchema = new mongoose.Schema(
   {
@@ -12,7 +12,7 @@ const householdSchema = new mongoose.Schema(
     inviteCode: {
       type: String,
       unique: true,
-      default: () => uuidv4().slice(0, 8).toUpperCase(), // e.g. "A3F7B2C1"
+      default: () => randomUUID().slice(0, 8).toUpperCase(), // e.g. "A3F7B2C1"
     },
     adminIds: [
       {
